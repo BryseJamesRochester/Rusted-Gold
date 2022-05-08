@@ -1,10 +1,10 @@
 struct Transaction {
     from:String,
-    nonce:usize,
+    nonce:u128,
     pubkey:String,
-    sig:String,
+    sig:Signature,
     outputs:Vec<(String, String)>,
-    fee: u128
+    fee: u32
 }
 
 impl Transaction {
