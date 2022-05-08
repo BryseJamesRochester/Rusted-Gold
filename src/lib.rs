@@ -81,3 +81,6 @@ mod block;
 pub use crate::block::Block;
 mod utils;
 pub use crate::utils::*;
+mod transaction;
+pub use crate::transaction::Transaction;
+pub use ring::{digest, rand, signature::{self, KeyPair, Ed25519KeyPair}};
