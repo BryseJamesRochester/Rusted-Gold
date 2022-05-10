@@ -3,3 +3,4 @@ temp/
 target/
 .idea/
 Cargo.lock
+key

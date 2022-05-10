@@ -1,17 +1,66 @@
-use std::fmt;
-use std::time::{SystemTime, UNIX_EPOCH };
+extern crate core;
 
-type Hash = Vec<u8>;
+use std::fmt;
+use std::ops::{Deref, DerefMut};
+use std::time::{SystemTime, UNIX_EPOCH };
+use hex::encode;
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
+pub struct Hash(Vec<u8>);
+impl Serialize for Hash {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_str(&*encode(self.as_hex()))
+    }
+}
+impl Deref for Hash {
+    type Target = Vec<u8>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for Hash {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+impl Hash {
+    pub fn as_hex(&self) -> String{
+        encode(<Vec<u8> as AsRef<[u8]>>::as_ref(self))
+    }
+}
 type Address = String;
 
+#[derive(Clone, Copy)]
+pub struct SigWrapper(Signature);
 
+impl Serialize for SigWrapper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_str(&*encode(self.as_ref()))
+    }
+}
+
+
+impl Deref for SigWrapper {
+    type Target = Signature;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for SigWrapper {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 
 
 const POW_LEADING_ZEROS:usize = 2;
 
 pub fn calc_pow_target () -> Hash {
-    let mut pow_target:Hash = vec![0xff;32];
+    let mut pow_target:Hash = Hash(vec![0xff;32]);
     for i in 0..POW_LEADING_ZEROS/2 {
         pow_target[i] = 0x00;
     }
@@ -83,4 +132,5 @@ mod utils;
 pub use crate::utils::*;
 mod transaction;
 pub use crate::transaction::Transaction;
-pub use ring::{digest, rand, signature::{self, KeyPair, Ed25519KeyPair}};
+pub use ring::{digest, rand, signature::{self, Signature, KeyPair, Ed25519KeyPair}};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
