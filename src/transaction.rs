@@ -49,12 +49,12 @@ impl Transaction {
     }
 
     pub fn serialize(&self) -> String {
-        let serialized_from = serde_json::to_string(&self.from).unwrap();
-        let serialized_nonce = serde_json::to_string(&self.nonce).unwrap();
-        let serialized_pubkey_bytes = serde_json::to_string(&self.pubkey_bytes).unwrap();
-        let serialized_outputs = serde_json::to_string(&self.outputs).unwrap();
-        let serialized_fee = serde_json::to_string(&self.fee).unwrap();
-        let serialized_data = serde_json::to_string(&self.data).unwrap();
+        let serialized_from = to_string(&self.from).unwrap();
+        let serialized_nonce = to_string(&self.nonce).unwrap();
+        let serialized_pubkey_bytes = to_string(&self.pubkey_bytes).unwrap();
+        let serialized_outputs = to_string(&self.outputs).unwrap();
+        let serialized_fee = to_string(&self.fee).unwrap();
+        let serialized_data = to_string(&self.data).unwrap();
         format!("{}||{}||{}||{}||{}||{}", serialized_from, serialized_nonce, serialized_pubkey_bytes, serialized_outputs, serialized_fee, serialized_data)
     }
 

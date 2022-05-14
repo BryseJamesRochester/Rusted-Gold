@@ -1,11 +1,11 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::ptr::null;
 use super::*;
 use serde::*;
 use serde::Serializer;
 use serde_json::*;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Block {
     pub reward_addr:Address,
     pub prev_block_hash:Hash,
@@ -50,7 +50,7 @@ impl Block {
     pub fn new (reward_addr:Address, coinbase_reward:u16, transactions:BTreeMap<Hash, Transaction>, prev_block:&Block) -> Self {
         Block {
             reward_addr,
-            prev_block_hash: prev_block.hash_val(),
+            prev_block_hash: prev_block.id(),
             coinbase_reward,
             transactions,
             chain_length: prev_block.chain_length+1,
@@ -127,8 +127,8 @@ impl Block {
         }
     }
 
-    pub fn contains(&self, tx:&Transaction) -> bool {
-        self.transactions.contains_key::<Hash>(&tx.id())
+    pub fn contains(&self, tx_id:&Hash) -> bool {
+        self.transactions.contains_key::<Hash>(tx_id)
     }
 
     pub fn balance_of(&self, address:&Address) -> u128 {
@@ -144,7 +144,7 @@ impl Block {
 
     pub fn has_valid_proof(&self) -> bool {
         //self.hash_val() < self.pow_target
-        let hash = self.hash_val();
+        let hash = self.id();
         for i in 0..hash.len() {
             if self.pow_target[i] > 0x0f {return true;}
             if hash[i] > self.pow_target[i] {return false;}
@@ -163,7 +163,7 @@ impl Block {
         serde_json::to_string(self).unwrap()
     }
 
-    pub fn hash_val(&self) -> Hash {
+    pub fn id(&self) -> Hash {
         Hash(hash(self.serialize().as_bytes()).to_vec())
     }
 }

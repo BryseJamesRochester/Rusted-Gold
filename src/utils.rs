@@ -1,4 +1,8 @@
+use base64::{encode, encode_config};
 use ring::{digest, rand, signature::{self, KeyPair, Ed25519KeyPair}};
+use crate::Address;
+
+extern crate base64;
 
 pub fn generate_keypair() -> Ed25519KeyPair {
     // Generate a key pair in PKCS#8 (v2) format.
@@ -11,6 +15,9 @@ pub fn hash(bytes: &[u8]) -> Vec<u8> {
     digest::digest(&digest::SHA256,bytes).as_ref().to_vec()
 }
 
+pub fn calc_address(pub_key: &[u8]) -> Address {
+    encode_config(pub_key,base64::STANDARD)
+}
 
 fn test() {
     let keypair:Ed25519KeyPair = generate_keypair();

@@ -56,8 +56,9 @@ impl DerefMut for SigWrapper {
 }
 
 
-
-const POW_LEADING_ZEROS:usize = 2;
+pub const DEFAULT_FEE:u32 = 1;
+pub const CONFIRMED_DEPTH:u8 = 2;
+const POW_LEADING_ZEROS:usize = 5;
 
 pub fn calc_pow_target () -> Hash {
     let mut pow_target:Hash = Hash(vec![0xff;32]);
@@ -131,6 +132,8 @@ pub use crate::block::Block;
 mod utils;
 pub use crate::utils::*;
 mod transaction;
+mod client;
+pub use crate::client::Client;
 pub use crate::transaction::Transaction;
 pub use ring::{digest, rand, signature::{self, Signature, KeyPair, Ed25519KeyPair}};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
