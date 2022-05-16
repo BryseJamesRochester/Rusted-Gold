@@ -2,9 +2,11 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::{default, result};
 use std::error::Error;
+use std::fmt::format;
 use std::ops::Add;
 use std::ptr::null;
-use base64::encode;
+use base64::encode as base64;
+use hex::{encode, decode};
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use crate::{Address, Block, calc_address, CONFIRMED_DEPTH, DEFAULT_FEE, generate_keypair, Hash, Transaction};
 
@@ -15,9 +17,9 @@ pub struct Client {
     pending_outgoing_transactions: BTreeMap<Hash, Transaction>,
     pending_received_transactions: BTreeMap<Hash, Transaction>,
     pub blocks:BTreeMap<Hash, Block>,
-    pendingBlocks: BTreeMap<Hash, Block>,
     last_confirmed_block_id: Option<Hash>,
-    last_block_id: Option<Hash>
+    last_block_id: Option<Hash>,
+    pending_blocks: BTreeMap<Hash, Vec<Block>>
 
 }
 
@@ -30,9 +32,9 @@ impl Default for Client {
             pending_outgoing_transactions: BTreeMap::new(),
             pending_received_transactions: BTreeMap::new(),
             blocks: BTreeMap::new(),
-            pendingBlocks: BTreeMap::new(),
             last_confirmed_block_id: None,
-            last_block_id: None
+            last_block_id: None,
+            pending_blocks:BTreeMap::new()
         }
     }
 }
@@ -107,16 +109,19 @@ impl Client {
     /** Currently only creates and returns a tx if client has enough gold.
            Will eventually broadcast this transaction to the network
      */
-    pub fn post_transaction(&mut self, outputs:Vec<(Address, u128)>, fee:Option<u32>) -> Option<Transaction> {
+    pub fn post_transaction(&mut self, outputs:Vec<(Address, u128)>, custom_fee:Option<u32>) -> Option<Transaction> {
+        let mut fee = custom_fee.unwrap_or(DEFAULT_FEE);
+        if fee < DEFAULT_FEE {
+            fee = DEFAULT_FEE;
+        }
         let mut tx = Transaction::new(
             self.address(),
             self.nonce,
             self.pub_key_bytes(),
             outputs,
-            fee.unwrap_or(DEFAULT_FEE),
+            fee,
             "".to_string()
         );
-        //println!("{}'s available gold: {}. tx total output: {}", self.name, self.available_gold(), tx.total_output());
         if self.available_gold() > tx.total_output(){
             tx.sign(&self.keypair);
             self.pending_outgoing_transactions.insert(tx.id(), tx.clone());
@@ -124,11 +129,57 @@ impl Client {
             Some(tx)
         }
         else {
+            self.log(&format!("Insufficient funds. {} gold available, tx total output: {}", self.available_gold(), tx.total_output()));
             None
         }
     }
 
-    //recieve block
+    pub fn receive_block(&mut self, mut block:Block) -> Option<Block>{
+        //will need to deserialize when blocks are communicated through network
+        if self.blocks.contains_key(&block.id()) { return None }
+        if !block.has_valid_proof() && !block.is_genesis() {
+            self.log(&format!("Block {} does not have a valid proof.", encode(&*block.id())));
+            return None;
+        }
+        let prev_block:Option<&Block> = self.blocks.get(&block.prev_block_hash);
+
+        if prev_block.is_none() && !block.is_genesis() {
+            let mut stuck_blocks: Option<Vec<Block>> = self.pending_blocks.remove(&block.prev_block_hash); //get(&block.prev_block_hash).as_mut();
+
+            if stuck_blocks.is_none() {
+                //request missing block
+                stuck_blocks = Some(vec![]);
+            }
+            let mut new_stuck_blocks = stuck_blocks.unwrap();
+            new_stuck_blocks.push(block.clone());
+            self.pending_blocks.insert(block.prev_block_hash, new_stuck_blocks.clone());
+            return None;
+        }
+
+        if !block.is_genesis() {
+            let success = block.rerun(prev_block.unwrap());
+            if !success { return None}
+        }
+
+        //block is good
+        self.blocks.insert(block.id(), block.clone());
+
+        let current_length = match self.last_block() {
+            Some(last_block) => last_block.chain_length,
+            None => 0
+        };
+        if current_length < block.chain_length {
+            self.last_block_id = Some(block.id());
+            self.set_last_confirmed();
+        }
+        let unstuck_blocks:Vec<Block> = self.pending_blocks.remove(&block.id()).unwrap_or(vec![]);
+        for unstuck_block in unstuck_blocks {
+            self.log(&format!("Processing unstuck block {}", encode(&*block.id())));
+            self.receive_block(unstuck_block);
+        }
+        return Some(block);
+
+    }
 
     //request missing block
 
@@ -141,10 +192,7 @@ impl Client {
             panic!("Trying to set last confirmed on empty blockchain");
         }
         let mut block = self.last_block().unwrap();
-        let mut confirmed_block_height = block.chain_length - CONFIRMED_DEPTH as u32;
-        if confirmed_block_height < 0 {
-            confirmed_block_height = 0;
-        }
+        let confirmed_block_height = block.chain_length.checked_sub(CONFIRMED_DEPTH as u32).unwrap_or(0);
         while block.chain_length > confirmed_block_height {
             block = self.blocks.get(&block.prev_block_hash).unwrap().clone();
         }
@@ -177,7 +225,7 @@ impl Client {
                 let mut block = Some(&block);
                 self.log("BLOCKCHAIN:");
                 while block.is_some() {
-                    self.log(&format!("{:?}", block.unwrap().id()));
+                    self.log(&format!("{:?}", encode(&*block.unwrap().id())));
                     block = self.blocks.get(&block.unwrap().prev_block_hash);
                 }
             },

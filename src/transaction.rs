@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter, write};
 use hex::encode;
 use ring::agreement::PublicKey;

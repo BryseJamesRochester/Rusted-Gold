@@ -3,9 +3,9 @@ extern crate core;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::time::{SystemTime, UNIX_EPOCH };
-use hex::encode;
+use hex::{encode, ToHex};
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone, Hash)]
 pub struct Hash(Vec<u8>);
 impl Serialize for Hash {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
@@ -40,7 +40,6 @@ impl Serialize for SigWrapper {
     }
 }
 
-
 impl Deref for SigWrapper {
     type Target = Signature;
 
@@ -55,10 +54,11 @@ impl DerefMut for SigWrapper {
     }
 }
 
-
+pub const DEFAULT_MINING_ROUNDS:usize = 3000;
 pub const DEFAULT_FEE:u32 = 1;
+pub const COINBASE_REWARD:u16 = 25;
 pub const CONFIRMED_DEPTH:u8 = 2;
-const POW_LEADING_ZEROS:usize = 5;
+const POW_LEADING_ZEROS:usize = 3;
 
 pub fn calc_pow_target () -> Hash {
     let mut pow_target:Hash = Hash(vec![0xff;32]);
@@ -134,6 +134,8 @@ pub use crate::utils::*;
 mod transaction;
 mod client;
 pub use crate::client::Client;
+mod miner;
+pub use crate::miner::Miner;
 pub use crate::transaction::Transaction;
 pub use ring::{digest, rand, signature::{self, Signature, KeyPair, Ed25519KeyPair}};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

@@ -26,11 +26,11 @@ fn test() {
 
     let sig = keypair.sign(MESSAGE);
 
-    let pubKeyBytes = keypair.public_key().as_ref();
+    let pub_key_bytes = keypair.public_key().as_ref();
 
-    let pubKey = signature::UnparsedPublicKey::new(&signature::ED25519, pubKeyBytes);
+    let pub_key = signature::UnparsedPublicKey::new(&signature::ED25519, pub_key_bytes);
 
-    if pubKey.verify(b"hello world", sig.as_ref()).is_ok() {
+    if pub_key.verify(b"hello world", sig.as_ref()).is_ok() {
         println!("Passed!");
     }
     else {

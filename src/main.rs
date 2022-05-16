@@ -21,6 +21,8 @@ fn get_key() -> Ed25519KeyPair {
 }
 
 fn main() {
+    let target = calc_pow_target();
+    println!("target:{}", encode(&*target));
     let keypair = get_key();
     let mut bryse = Client::new(String::from("Bryse"), None, Some(keypair));
     let mut vianca = Client::new(String::from("Vianca"), None, None);
@@ -37,12 +39,12 @@ fn main() {
     vianca.set_genesis(gen_block.clone());
     kj.set_genesis(gen_block.clone());
     grandma.set_genesis(gen_block.clone());
-    let mut block1 = Block::new(
-        bryse.address(),
-        10,
-        BTreeMap::new(),
-        &gen_block
-    );
+    let mut mr_miner = Miner::new(String::from("kevin"), Some(gen_block.clone()), None, None);
+
+    // let mut block1 = Block::new(
+    //     bryse.address(),
+    //     &gen_block
+    // );
 
 
     println!("{} paying {} 5 gold and {} 5 gold", bryse.name, kj.name, grandma.name);
@@ -59,25 +61,34 @@ fn main() {
     let tx_clone = tx.clone();
     let tx1_clone = tx1.clone();
     let tx2_clone = tx2.clone();
-    block1.add_transaction(tx_clone);
-    block1.add_transaction(tx1_clone);
-    block1.add_transaction(tx2_clone);
+    mr_miner.add_transaction(tx);
+    mr_miner.add_transaction(tx1);
+    mr_miner.add_transaction(tx2);
+    mr_miner.initialize();
+    for _ in 0..15{
+        mr_miner.find_proof();
+    }
+
+    mr_miner.client.show_all_balances();
+    // block1.add_transaction(tx_clone);
+    // block1.add_transaction(tx1_clone);
+    // block1.add_transaction(tx2_clone);
     // println!("block1 contains tx:{:?}, tx1:{:?}, tx2{:?}",
     //          block1.contains(&tx),
     //          block1.contains(&tx1),
     //          block1.contains(&tx2)
     // );
-    println!("block1 balance of 'bryse':{}, 'vianca':{}, 'kj':{}, 'grandma':{}",
-             block1.balance_of(&bryse.address()),
-             block1.balance_of(&vianca.address()),
-             block1.balance_of(&kj.address()),
-             block1.balance_of(&grandma.address())
-    );
-    println!("block1 id pre mine {}", encode(&*block1.id()));
-    println!("Mining!");
-    let start_mine = Instant::now();
-    block1.mine();
-    println!("block1 id post mine {}, nonce: {}, time: {}", encode(&*block1.id()), block1.proof, start_mine.elapsed().as_secs());
+    // println!("block1 balance of 'bryse':{}, 'vianca':{}, 'kj':{}, 'grandma':{}",
+    //          block1.balance_of(&bryse.address()),
+    //          block1.balance_of(&vianca.address()),
+    //          block1.balance_of(&kj.address()),
+    //          block1.balance_of(&grandma.address())
+    // );
+    // println!("block1 id pre mine {}", encode(&*block1.id()));
+    // println!("Mining!");
+    //let start_mine = Instant::now();
+    //block1.mine();
+    //println!("block1 id post mine {}, nonce: {}, time: {}", encode(&*block1.id()), block1.proof, start_mine.elapsed().as_secs());
 
 
 

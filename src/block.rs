@@ -25,10 +25,10 @@ impl Default for Block {
             prev_block_hash:Hash(vec![0;32]),
             pow_target:calc_pow_target(),
             proof:0,
-            coinbase_reward:0,
+            coinbase_reward:COINBASE_REWARD,
             transactions:BTreeMap::new(),
             chain_length:0,
-            timestamp:0,
+            timestamp:now(),
             balances:BTreeMap::new(),
             next_nonce:BTreeMap::new()
         }
@@ -47,12 +47,10 @@ fn reward_coinbase(prev_block:&Block) -> BTreeMap<Address, u128> {
 }
 
 impl Block {
-    pub fn new (reward_addr:Address, coinbase_reward:u16, transactions:BTreeMap<Hash, Transaction>, prev_block:&Block) -> Self {
+    pub fn new (reward_addr:Address, prev_block:&Block) -> Self {
         Block {
             reward_addr,
             prev_block_hash: prev_block.id(),
-            coinbase_reward,
-            transactions,
             chain_length: prev_block.chain_length+1,
             balances: reward_coinbase(prev_block),
             next_nonce: prev_block.next_nonce.clone(),
@@ -60,7 +58,7 @@ impl Block {
         }
     }
 
-    pub fn add_transaction(&mut self, mut tx:Transaction) -> bool {
+    pub fn add_transaction(&mut self, tx:Transaction) -> bool {
         if self.transactions.contains_key::<Hash>(&tx.id()) {println!("duplicate tx"); false;}
         else if tx.sig.is_none() {println!("No sig"); false;}
         else if !tx.valid_signature() {println!("Invalid Sig"); false;}
@@ -79,7 +77,7 @@ impl Block {
         else if tx.nonce > *nonce {println!("out of order tx");return false;}
         else {*nonce += 1}
 
-        let mut balance = match self.balances.get_mut(&tx.from){
+        let balance = match self.balances.get_mut(&tx.from){
             Some(balance) => balance,
             None => {
                 self.balances.insert(tx.from.clone(), 0);
@@ -89,14 +87,14 @@ impl Block {
         *balance -= tx.total_output();
 
         for i in 0..tx.outputs.len() {
-            let mut oldBalance = match self.balances.get_mut(&tx.outputs[i].0){
+            let old_balance = match self.balances.get_mut(&tx.outputs[i].0){
                 Some(balance) => balance,
                 None => {
                     self.balances.insert(tx.outputs[i].0.clone(), 0);
                     self.balances.get_mut(&tx.outputs[i].0).unwrap()
                 },
             };
-            *oldBalance += tx.outputs[i].1;
+            *old_balance += tx.outputs[i].1;
         }
 
         self.transactions.insert(tx.id(), tx);
@@ -120,11 +118,12 @@ impl Block {
         true
     }
 
-    pub fn total_rewards(&self) {
+    pub fn total_rewards(&self) -> u32 {
         let mut total = 0;
         for (_, tx) in &self.transactions {
             total+=tx.fee
         }
+        total
     }
 
     pub fn contains(&self, tx_id:&Hash) -> bool {
@@ -146,18 +145,18 @@ impl Block {
         //self.hash_val() < self.pow_target
         let hash = self.id();
         for i in 0..hash.len() {
-            if self.pow_target[i] > 0x0f {return true;}
+            if self.pow_target[i] > 0xf {return true;}
             if hash[i] > self.pow_target[i] {return false;}
         }
         true
     }
 
-    pub fn mine(&mut self) -> u128 {
+    /*pub fn mine(&mut self) -> u128 {
         while !self.has_valid_proof() {
             self.proof += 1;
         }
         self.proof
-    }
+    }*/
 
     pub fn serialize(&self) -> String {
         serde_json::to_string(self).unwrap()
