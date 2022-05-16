@@ -21,24 +21,21 @@ fn get_key() -> Ed25519KeyPair {
 }
 
 fn main() {
-    let target = calc_pow_target();
-    println!("target:{}", encode(&*target));
+    //let target = calc_pow_target();
+    //println!("target:{}", encode(&*target));
     let keypair = get_key();
     let mut bryse = Client::new(String::from("Bryse"), None, Some(keypair));
     let mut vianca = Client::new(String::from("Vianca"), None, None);
-    let mut kj = Client::new(String::from("KJ"), None, None);
-    let mut grandma = Client::new(String::from("Grandma"), None, None);
 
-    let gen_block = Block{
-        balances:BTreeMap::from(
-            [(bryse.address(), 20),
-                (vianca.address(), 50)]),
-        ..Default::default()};
+
+    let gen_block = Blockchain::make_genesis(
+        BTreeMap::from([(bryse.address(), 20), (vianca.address(), 50)])
+    );
 
     bryse.set_genesis(gen_block.clone());
     vianca.set_genesis(gen_block.clone());
-    kj.set_genesis(gen_block.clone());
-    grandma.set_genesis(gen_block.clone());
+    let mut kj = Client::new(String::from("KJ"), Some(gen_block.clone()), None);
+    let mut grandma = Client::new(String::from("Grandma"), Some(gen_block.clone()), None);
     let mut mr_miner = Miner::new(String::from("kevin"), Some(gen_block.clone()), None, None);
 
     // let mut block1 = Block::new(

@@ -54,20 +54,15 @@ impl DerefMut for SigWrapper {
     }
 }
 
-pub const DEFAULT_MINING_ROUNDS:usize = 3000;
-pub const DEFAULT_FEE:u32 = 1;
-pub const COINBASE_REWARD:u16 = 25;
-pub const CONFIRMED_DEPTH:u8 = 2;
-const POW_LEADING_ZEROS:usize = 3;
 
-pub fn calc_pow_target () -> Hash {
+/*pub fn calc_pow_target () -> Hash {
     let mut pow_target:Hash = Hash(vec![0xff;32]);
     for i in 0..POW_LEADING_ZEROS/2 {
         pow_target[i] = 0x00;
     }
     if POW_LEADING_ZEROS % 2 != 0 {pow_target[POW_LEADING_ZEROS/2] = 0x0f};
     pow_target
-}
+}*/
 
 pub fn now () -> u128 {
     let duration = SystemTime::now()
@@ -131,11 +126,13 @@ mod block;
 pub use crate::block::Block;
 mod utils;
 pub use crate::utils::*;
-mod transaction;
 mod client;
 pub use crate::client::Client;
 mod miner;
 pub use crate::miner::Miner;
+mod transaction;
 pub use crate::transaction::Transaction;
+mod blockchain;
+pub use crate::blockchain::Blockchain;
 pub use ring::{digest, rand, signature::{self, Signature, KeyPair, Ed25519KeyPair}};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

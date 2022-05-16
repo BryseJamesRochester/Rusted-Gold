@@ -4,6 +4,8 @@ use super::*;
 use serde::*;
 use serde::Serializer;
 use serde_json::*;
+use crate::blockchain::{COINBASE_REWARD, POW_LEADING_ZEROS};
+
 
 #[derive(Serialize, Clone, Debug)]
 pub struct Block {
@@ -33,6 +35,15 @@ impl Default for Block {
             next_nonce:BTreeMap::new()
         }
     }
+}
+
+fn calc_pow_target () -> Hash {
+    let mut pow_target:Hash = Hash(vec![0xff;32]);
+    for i in 0..POW_LEADING_ZEROS/2 {
+        pow_target[i] = 0x00;
+    }
+    if POW_LEADING_ZEROS % 2 != 0 {pow_target[POW_LEADING_ZEROS/2] = 0x0f};
+    pow_target
 }
 
 fn reward_coinbase(prev_block:&Block) -> BTreeMap<Address, u128> {
@@ -145,7 +156,7 @@ impl Block {
         //self.hash_val() < self.pow_target
         let hash = self.id();
         for i in 0..hash.len() {
-            if self.pow_target[i] > 0xf {return true;}
+            if self.pow_target[i] > 0x0f {return true;}
             if hash[i] > self.pow_target[i] {return false;}
         }
         true

@@ -1,7 +1,8 @@
 use std::fmt::format;
 use std::ops::Add;
 use ring::signature::Ed25519KeyPair;
-use crate::{Address, Block, Client, COINBASE_REWARD, DEFAULT_MINING_ROUNDS, Hash, Transaction};
+use crate::{Address, Block, Blockchain, Client, Hash, Transaction};
+use crate::blockchain::DEFAULT_MINING_ROUNDS;
 
 pub struct Miner {
     pub client: Client,
@@ -27,7 +28,7 @@ impl Miner {
     //inefficient
     pub fn start_new_search (&mut self, tx_set: Option<Vec<Transaction>>) {
         if self.last_block().is_some() {
-            self.current_block = Some(Block::new(self.address(), &self.last_block().unwrap()));
+            self.current_block = Some(Blockchain::make_block(self.address(), &self.last_block().unwrap()));
             if tx_set.is_some() {
                 for tx in tx_set.unwrap().iter() {
                     self.transactions.push(tx.clone());

@@ -8,7 +8,8 @@ use std::ptr::null;
 use base64::encode as base64;
 use hex::{encode, decode};
 use ring::signature::{Ed25519KeyPair, KeyPair};
-use crate::{Address, Block, calc_address, CONFIRMED_DEPTH, DEFAULT_FEE, generate_keypair, Hash, Transaction};
+use crate::{Address, Block, Blockchain, calc_address, generate_keypair, Hash, Transaction};
+use crate::blockchain::{CONFIRMED_DEPTH, DEFAULT_FEE};
 
 pub struct Client {
     pub keypair:Ed25519KeyPair,
@@ -114,7 +115,7 @@ impl Client {
         if fee < DEFAULT_FEE {
             fee = DEFAULT_FEE;
         }
-        let mut tx = Transaction::new(
+        let mut tx = Blockchain::make_transaction(
             self.address(),
             self.nonce,
             self.pub_key_bytes(),
